@@ -10,8 +10,8 @@ jobs:
 
     permissions:
       contents: read
-      security-events: write   # SARIF 업로드
-      pull-requests: write     # PR 댓글 작성
+      security-events: write
+      pull-requests: write
 
     steps:
       # 1️⃣ Checkout
@@ -24,6 +24,7 @@ jobs:
           curl -L -o codeql.zip https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-linux64.zip
           unzip -q codeql.zip
           echo "$PWD/codeql" >> $GITHUB_PATH
+          rm codeql.zip
 
       # 3️⃣ Create CodeQL database
       - name: Create CodeQL database
@@ -43,8 +44,9 @@ jobs:
             --format=sarifv2.1.0 \
             --output=codeql-results.sarif
 
-      # 5️⃣ Upload SARIF to GitHub Security tab
+      # 5️⃣ Upload SARIF (skip fork PRs)
       - name: Upload SARIF
+        if: github.repository_owner == github.actor
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results.sarif

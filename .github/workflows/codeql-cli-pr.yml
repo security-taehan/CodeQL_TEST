@@ -31,13 +31,14 @@ jobs:
             --language=javascript-typescript \
             --source-root=.
 
-      # 3️⃣ CodeQL 분석 → SARIF
+      # 3️⃣ CodeQL 분석 → SARIF 생성 (FIXED)
       - name: Run CodeQL analysis
         run: |
           codeql database analyze codeql-db \
-            javascript-security-and-quality.qls \
+            github/codeql/javascript-queries:latest \
             --format=sarifv2.1.0 \
             --output=codeql-results.sarif
+
 
       # 4️⃣ SARIF 업로드
       - name: Upload SARIF to GitHub Code Scanning

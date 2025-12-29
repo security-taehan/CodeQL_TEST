@@ -34,6 +34,8 @@ jobs:
 
       # 4️⃣ Run CodeQL analysis (official queries, auto-download)
       - name: Run CodeQL analysis
+        env:
+          JAVA_TOOL_OPTIONS: "-Xmx4g"  # Java heap 4GB로 증가
         run: |
           codeql database analyze codeql-db \
             codeql/javascript-queries:codeql-suites/javascript-security-and-quality.qls \

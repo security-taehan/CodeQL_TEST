@@ -10,8 +10,8 @@ jobs:
 
     permissions:
       contents: read
-      security-events: write   # SARIF 업로드 필수
-      pull-requests: write     # PR 댓글 작성
+      security-events: write
+      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -24,14 +24,14 @@ jobs:
           unzip -q codeql.zip
           echo "$PWD/codeql" >> $GITHUB_PATH
 
-      # 2️⃣ CodeQL DB 생성 (TypeScript / JavaScript)
+      # 2️⃣ CodeQL DB 생성
       - name: Create CodeQL database
         run: |
           codeql database create codeql-db \
             --language=javascript-typescript \
             --source-root=.
 
-      # 3️⃣ CodeQL 분석 → SARIF 생성
+      # 3️⃣ CodeQL 분석 → SARIF
       - name: Run CodeQL analysis
         run: |
           codeql database analyze codeql-db \
@@ -39,32 +39,31 @@ jobs:
             --format=sarifv2.1.0 \
             --output=codeql-results.sarif
 
-      # 4️⃣ SARIF → GitHub Security 탭 업로드
+      # 4️⃣ SARIF 업로드
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results.sarif
           category: codeql-cli-pr
 
-      # 5️⃣ PR 댓글 등록 (요약 알림용)
+      # 5️⃣ PR 댓글 등록 (✔️ YAML-safe)
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const pr = context.payload.pull_request.number;
+            const prNumber = context.payload.pull_request.number;
+
+            const body =
+              "🔐 **CodeQL 분석이 완료되었습니다.**\n\n" +
+              "- 분석 방식: CodeQL CLI (무료)\n" +
+              "- 결과 위치: **Security → Code scanning**\n" +
+              "- 분석 범위: 저장소 전체 코드 기준\n\n" +
+              "👉 상세 취약점은 Security 탭에서 확인해주세요.";
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: pr,
-              body: `
-🔐 **CodeQL 분석이 완료되었습니다.**
-
-- 분석 방식: CodeQL CLI (무료)
-- 결과 위치: **Security → Code scanning**
-- 분석 범위: 저장소 전체 코드 기준
-
-👉 상세 취약점 및 위치는 Security 탭에서 확인해주세요.
-`
+              issue_number: prNumber,
+              body: body
             });

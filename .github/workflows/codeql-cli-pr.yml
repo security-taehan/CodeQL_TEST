@@ -10,45 +10,70 @@ jobs:
 
     permissions:
       contents: read
-      security-events: write
-      pull-requests: write
+      security-events: write   # SARIF 업로드
+      pull-requests: write     # PR 댓글 작성
 
     steps:
+      # 1️⃣ Checkout
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
+      # 2️⃣ Install CodeQL CLI
       - name: Install CodeQL CLI
         run: |
           curl -L -o codeql.zip https://github.com/github/codeql-cli-binaries/releases/latest/download/codeql-linux64.zip
           unzip -q codeql.zip
           echo "$PWD/codeql" >> $GITHUB_PATH
 
+      # 3️⃣ Create CodeQL database
       - name: Create CodeQL database
         run: |
           codeql database create codeql-db \
             --language=javascript \
             --source-root=.
 
+      # 4️⃣ Download official JavaScript queries
+      - name: Download CodeQL query pack
+        run: |
+          codeql pack install github/codeql/javascript-queries
+
+      # 5️⃣ Find the actual pack path
+      - name: Get CodeQL query pack path
+        id: pack
+        run: |
+          echo "PACK_PATH=$(ls -d ~/.codeql/packages/codeql/javascript-queries/*)" >> $GITHUB_ENV
+
+      # 6️⃣ Run CodeQL analysis → SARIF
       - name: Run CodeQL analysis
         run: |
           codeql database analyze codeql-db \
+            "$PACK_PATH/codeql-suites/javascript-security-and-quality.qls" \
             --format=sarifv2.1.0 \
-            --output=codeql-results.sarif \
-            --download \
-            javascript-security-and-quality
+            --output=codeql-results.sarif
 
-      - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
+      # 7️⃣ Upload SARIF to GitHub Security tab
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results.sarif
+          category: codeql-cli-pr
 
+      # 8️⃣ Post PR comment
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
           script: |
+            const prNumber = context.payload.pull_request.number;
+            const body =
+              "🔐 **CodeQL 분석 완료**\n\n" +
+              "- 분석 방식: CodeQL CLI (무료)\n" +
+              "- 결과 위치: **Security → Code scanning**\n" +
+              "- 분석 범위: 저장소 전체 코드 기준\n\n" +
+              "👉 상세 취약점은 Security 탭에서 확인해주세요.";
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: '🔐 **CodeQL 분석 완료**\n\n결과: **Security → Code scanning** 탭에서 확인'
+              issue_number: prNumber,
+              body: body
             });

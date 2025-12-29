@@ -46,11 +46,13 @@ jobs:
 
       # 5️⃣ Upload SARIF (skip fork PRs)
       - name: Upload SARIF
-        if: github.repository_owner == github.actor
+        if: always()  # 모든 PR에서 실행
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results.sarif
           category: codeql-cli-pr
+          token: ${{ secrets.PAT_FOR_CODEQL }}
+
 
       # 6️⃣ Post PR comment
       - name: Comment on PR

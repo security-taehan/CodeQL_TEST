@@ -34,7 +34,8 @@ jobs:
           codeql database analyze codeql-db \
             --format=sarifv2.1.0 \
             --output=codeql-results.sarif \
-            --download
+            --download \
+            javascript-security-and-quality
 
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3

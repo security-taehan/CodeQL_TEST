@@ -32,38 +32,29 @@ jobs:
             --language=javascript \
             --source-root=.
 
-      # 4️⃣ Download official JavaScript queries
-      - name: Download CodeQL query pack
-        run: |
-          codeql pack install github/codeql/javascript-queries
-
-      # 5️⃣ Find the actual pack path
-      - name: Get CodeQL query pack path
-        id: pack
-        run: |
-          echo "PACK_PATH=$(ls -d ~/.codeql/packages/codeql/javascript-queries/*)" >> $GITHUB_ENV
-
-      # 6️⃣ Run CodeQL analysis → SARIF
+      # 4️⃣ Run CodeQL analysis (official queries, auto-download)
       - name: Run CodeQL analysis
         run: |
           codeql database analyze codeql-db \
-            "$PACK_PATH/codeql-suites/javascript-security-and-quality.qls" \
+            codeql/javascript-queries:codeql-suites/javascript-security-and-quality.qls \
+            --download \
             --format=sarifv2.1.0 \
             --output=codeql-results.sarif
 
-      # 7️⃣ Upload SARIF to GitHub Security tab
+      # 5️⃣ Upload SARIF to GitHub Security tab
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results.sarif
           category: codeql-cli-pr
 
-      # 8️⃣ Post PR comment
+      # 6️⃣ Post PR comment
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
+
             const body =
               "🔐 **CodeQL 분석 완료**\n\n" +
               "- 분석 방식: CodeQL CLI (무료)\n" +

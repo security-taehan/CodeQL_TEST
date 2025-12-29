@@ -31,23 +31,27 @@ jobs:
             --language=javascript-typescript \
             --source-root=.
 
-      # 3️⃣ CodeQL 분석 → SARIF 생성 (FIXED)
+      # ✅ 2.5️⃣ CodeQL JavaScript 쿼리 팩 설치 (중요!)
+      - name: Install CodeQL query pack
+        run: |
+          codeql pack install github/codeql/javascript-queries
+
+      # 3️⃣ CodeQL 분석 → SARIF 생성 (FIX)
       - name: Run CodeQL analysis
         run: |
           codeql database analyze codeql-db \
-            github/codeql/javascript-queries:latest \
+            ~/.codeql/packages/github/codeql/javascript-queries/* \
             --format=sarifv2.1.0 \
             --output=codeql-results.sarif
 
-
-      # 4️⃣ SARIF 업로드
+      # 4️⃣ SARIF 업로드 → GitHub Security 탭
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: codeql-results.sarif
           category: codeql-cli-pr
 
-      # 5️⃣ PR 댓글 등록 (✔️ YAML-safe)
+      # 5️⃣ PR 댓글 등록
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -68,4 +72,3 @@ jobs:
               issue_number: prNumber,
               body: body
             });
-  

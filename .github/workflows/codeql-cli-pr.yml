@@ -50,6 +50,14 @@ jobs:
         with:
           sarif_file: codeql-results.sarif
           category: codeql-cli-pr
+      
+      # 5️⃣-1 Upload SARIF as Artifact (다운로드용)
+      - name: Upload SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-results-sarif
+          path: codeql-results.sarif
+          retention-days: 7
 
       # 6️⃣ Post PR comment
       - name: Comment on PR
